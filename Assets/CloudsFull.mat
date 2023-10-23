@@ -55,7 +55,7 @@ Material:
     m_Floats:
     - _BaseRayStepLength: 15
     - _BeerLambertStrength: 0.34
-    - _BlueNoiseStrength: 10
+    - _BlueNoiseStrength: 100
     - _CloudChunkiness: 3.61
     - _CloudCoverageMinimum: 0
     - _CloudCoverageMultiplier: 0.92

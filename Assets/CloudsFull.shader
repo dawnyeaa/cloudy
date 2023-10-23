@@ -396,11 +396,12 @@ Shader "Custom/CloudsFull" {
         float stepSize = thickness / float(sampleCount);
 
         float startOffset = /*stepSize * */(SAMPLE_TEXTURE2D(_BlueNoise, sampler_BlueNoise, screenPos*(_ScreenParams.y*_BlueNoise_TexelSize.y)).r - 0.5) * _BlueNoiseStrength;
-        startPos += startOffset;
-        endPos += startOffset;
         
         dir /= thickness;
         float3 posStep = stepSize * dir;
+
+        startPos += startOffset * dir;
+        endPos += startOffset * dir;
 
         float lightDotView = -dot(normalize(_MainLightPosition.xyz), normalize(rayDirection));
 
@@ -489,6 +490,35 @@ Shader "Custom/CloudsFull" {
         fogColor = lerp(fogColor, sunColor, pow(saturate(lightDotView), 8));
         // return float4(clamp(lerp(result.rgb, fogColor, fogAmt), 0, 1000), saturate(result.a));
         return result;
+      }
+
+      half4 traceSpheres(float3 rayDirection, float2 screenPos, float3 startPos, float3 endPos, ProcessedProperties cloudInfo) {
+        float3 dir = endPos - startPos;
+        float thickness = length(dir);
+        uint sampleCount = lerp(128, 128, saturate((thickness - cloudInfo.cloudLayerHeight) / cloudInfo.cloudLayerHeight));
+        float stepSize = thickness / float(sampleCount);
+        
+        float radius = 20;
+        float tiling = 100;
+
+        dir /= thickness;
+        float3 posStep = stepSize * dir;
+        
+        float startOffset = /*stepSize * */(SAMPLE_TEXTURE2D(_BlueNoise, sampler_BlueNoise, screenPos*(_ScreenParams.y*_BlueNoise_TexelSize.y)).r - 0.5) * _BlueNoiseStrength;
+        startPos += startOffset * dir;
+        endPos += startOffset * dir;
+
+        float3 pos = startPos;
+
+        [loop]
+        for (uint i = 0; i < sampleCount; ++i) {
+          float3 posTiled = frac(pos / tiling) * tiling;
+          float sphereVal = step(distance(posTiled, float3(tiling/2, tiling/2, tiling/2)), radius);
+          if (sphereVal > 0 && pos.y < 500) return half4(1, (pos.y - 430)/(radius*2), 0, 1);
+
+          pos += posStep;
+        }
+        return (0, 0, 0, 0);
       }
 
       half4 frag(VertexOutput i) : SV_TARGET {
