@@ -25,11 +25,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CloudNoiseHighFreq:
-        m_Texture: {fileID: 11700000, guid: 1ee85a3b432400f4a97e2f0586834a0f, type: 3}
+        m_Texture: {fileID: 11700000, guid: 94794f48e48316f4fa27af16da8a6546, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CloudNoiseLowFreq:
-        m_Texture: {fileID: 11700000, guid: d11d8242a2c2ab444817dc0d616a604a, type: 3}
+        m_Texture: {fileID: 11700000, guid: ccd6209a2f309ca4e973dbc5ef055e5a, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CurlTex:
@@ -40,52 +40,86 @@ Material:
         m_Texture: {fileID: 2800000, guid: 3cf44e6b0c4a461438927acef0f5774b, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _DetailErosionTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _WeatherMap:
-        m_Texture: {fileID: 2800000, guid: 5d9f68c1ce2265b46ba8ee6b053fe969, type: 3}
+        m_Texture: {fileID: 2800000, guid: 6d57f0284065c0541ba381182a096874, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0.3, y: 0.3}
     m_Ints: []
     m_Floats:
+    - _A: 1.2
+    - _B: -0.3
     - _BaseRayStepLength: 15
     - _BeerLambertStrength: 0.34
-    - _BlueNoiseStrength: 100
+    - _BlueNoiseStrength: 1
+    - _BottomDarkening: 0.7
+    - _BottomDarkeningStart: 0.5
     - _CloudChunkiness: 3.61
+    - _CloudCoverage: 0.35
     - _CloudCoverageMinimum: 0
     - _CloudCoverageMultiplier: 0.92
     - _CloudCoverageTest: 0.185
     - _CloudDensityCoverageMultiplier: 0
+    - _CloudDetailNoiseScale: 0.7
+    - _CloudGlobalDensity: 0.2
     - _CloudHeightTest: 0
-    - _CloudLayerEnd: 1500
-    - _CloudLayerStart: 400
+    - _CloudLayerEnd: 5000
+    - _CloudLayerStart: 1500
+    - _CloudScale: 0.12
     - _CloudShapeNoiseScale: 0.1
+    - _CloudType: 0.5
     - _CloudTypeMultiplier: 0.96
+    - _CloudWetness: 0
     - _CurlScale: 14.9
     - _CurlStrength: 37.6
+    - _DensityEndPos: 0.4
+    - _DetailErosionHigh: 0.25
+    - _DetailErosionLow: 0.3
     - _DetailNoiseScale: 17.7
     - _DetailStrength: 1
+    - _Extinction: 1
+    - _ExtinctionColorBlend: 1
+    - _ExtinctionColorScalar: 0.8
+    - _ExtinctionDistance: 150
+    - _ExtinctionFar: 2
+    - _ExtinctionNear: 1.5
+    - _ExtinctionReducer: 1
     - _FadeHorizonAngle: 0.01
-    - _FadeMaxDistance: 12000
-    - _FadeMinDistance: 8000
+    - _FadeMaxDistance: 20000
+    - _FadeMinDistance: 5000
     - _GlobalCoverage: 0
     - _GlobalDensity: 0.32
+    - _HighAltitudeCoverage: 0.7
     - _HighNoiseScrollingSpeed: 0.2
     - _IntervalFarRange: 6000
     - _LightAbsorbtion: -0.92
+    - _LightSampleStepSize: 60
     - _LightStepSize: 50.43
     - _LowNoiseScrollingSpeed: 0.2
-    - _PlanetRadius: 200000
+    - _Phase: 0.49
+    - _PlanetRadius: 150000
+    - _PowderCoefFar: 2
+    - _PowderCoefNear: 3
+    - _PowderFar: 1.1
+    - _PowderNear: 1.1
     - _PowderSugarStrength: 3.47
+    - _Scattering: 100
+    - _ScatteringColorBlend: 0.5
     - _SilverLiningPower: 1.47
     - _WeatherMapScale: 20000
     - _WeatherMapScrollingSpeed: 0.2
     m_Colors:
     - _A: {r: 0, g: 1, b: 0, a: 0}
-    - _AmbientBottomColor: {r: 0.16276252, g: 0.4253081, b: 0.6792453, a: 1}
-    - _AmbientTopColor: {r: 1, g: 1, b: 1, a: 1}
+    - _AmbientBottomColor: {r: 0.1441285, g: 0.12743773, b: 0.116970696, a: 1}
+    - _AmbientTopColor: {r: 0.26225072, g: 0.31854683, b: 0.45641106, a: 1}
+    - _ExtinctionColor: {r: 0.22, g: 0.3, b: 0.42, a: 1}
     - _FogColor: {r: 0.6392157, g: 0.79215693, b: 0.83921576, a: 1}
     - _WeatherMapOffset: {r: 0, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
