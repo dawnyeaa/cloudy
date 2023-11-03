@@ -6,6 +6,8 @@ Shader "Custom/CloudsFull" {
     _CloudLayerStart ("Cloud Layer Start", Float) = 400
     _CloudLayerEnd ("Cloud Layer End", Float) = 1000
 
+    _MaxCloudDistance ("Max Cloud Distance", Float) = 12000
+
     [HDR] _AmbientBottomColor ("Bottom Ambient Color", Color) = (0.5, 0.67, 0.82, 1)
     [HDR] _AmbientTopColor ("Top Ambient Color", Color) = (1, 1, 1, 1)
 
@@ -13,24 +15,20 @@ Shader "Custom/CloudsFull" {
     _CloudType ("Cloud Type", Range(0, 1)) = 0.5
     _CloudWetness ("Cloud Wetness", Range(0, 1)) = 0
 
-    _CloudShapeNoiseScale ("Shape Noise Scale", Float) = 1
-    _CloudDetailNoiseScale ("Detail Noise Scale", Float) = 1
-
     _WeatherMap ("Weather Map", 2D) = "white" {}
-
-    _DetailStrength ("Detail Strength", Float) = 1
-    _DetailNoiseScale ("Detail Noise Scale", Float) = 1
 
     _FadeMinDistance ("Cloud Min Fade Distance", Float) = 10000
     _FadeMaxDistance ("Cloud Max Fade Distance", Float) = 20000
 
     _CloudNoiseLowFreq ("Low Frequency Cloud Noise", 3D) = "white" {}
-
     _CloudNoiseHighFreq ("High Frequency Cloud Noise", 3D) = "white" {}
 
     _CurlTex ("Curl Texture", 2D) = "white" {}
-    _CurlStrength ("Curl Strength", Float) = 1
-    _CurlScale ("Curl Scale", Float) = 1
+    _CurlAmplitude ("Curl Amplitude", Range(0, 0.5)) = 0.025
+    _CurlFrequency ("Curl Frequency", Range(0, 30)) = 10
+
+    _HighAltitudeCloudMap ("High Altitude Cloud Map", 2D) = "white" {}
+    _HighAltitudeCloudScale ("High Altitude Cloud Scale", Range(1, 10)) = 2
 
     _BlueNoise("Blue Noise", 2D) = "white" {}
     _BlueNoiseStrength("Blue Noise Strength", Float) = 1
@@ -54,12 +52,12 @@ Shader "Custom/CloudsFull" {
     _BottomDarkeningStart ("Bottom Darkening Start", Range(0, 1)) = 0.5
     _BottomDarkening ("Bottom Darkening", Range(0, 1)) = 0.7
     _ExtinctionReducer ("Top Extinction Reducer", Range(0, 1)) = 1
-    _DensityEndPos ("Local Density End Pos", Range(0, 1)) = 0.4
     _ScatteringColorBlend ("Scattering Anti Color Blend", Range(0, 10)) = 0.5
 
     _CloudGlobalDensity ("Global Density", Range(0.01, 1)) = 0.2
 
     _CloudScale ("Cloud Scale", Range(0.01, 0.5)) = 0.12
+    _CloudErodeScale ("Cloud Erode Scale", Range(1, 20)) = 6
 
     _LightSampleStepSize ("Light Sample Step Size", Float) = 1
 
@@ -96,8 +94,7 @@ Shader "Custom/CloudsFull" {
       float _CloudLayerStart;
       float _CloudLayerEnd;
 
-      float _CloudShapeNoiseScale;
-      float _CloudDetailNoiseScale;
+      float _MaxCloudDistance;
 
       float _CloudCoverage;
       float _CloudType;
@@ -106,11 +103,10 @@ Shader "Custom/CloudsFull" {
       float3 _AmbientBottomColor;
       float3 _AmbientTopColor;
 
-      float _DetailStrength;
-      float _DetailNoiseScale;
+      float _CurlAmplitude;
+      float _CurlFrequency;
 
-      float _CurlStrength;
-      float _CurlScale;
+      int _HighAltitudeCloudScale;
 
       float _FadeMinDistance;
       float _FadeMaxDistance;
@@ -135,12 +131,12 @@ Shader "Custom/CloudsFull" {
       float _BottomDarkeningStart;
       float _BottomDarkening;
       float _ExtinctionReducer;
-      float _DensityEndPos;
       float _DetailErosionLow;
       float _DetailErosionHigh;
       float _ScatteringColorBlend;
       float _CloudGlobalDensity;
       float _CloudScale;
+      float _CloudErodeScale;
 
       float _LightSampleStepSize;
 
@@ -166,6 +162,9 @@ Shader "Custom/CloudsFull" {
       TEXTURE2D(_CurlTex);
       SAMPLER(sampler_CurlTex);
       float4 _CurlTex_TexelSize;
+      
+      TEXTURE2D(_HighAltitudeCloudMap);
+      SAMPLER(sampler_HighAltitudeCloudMap);
 
       TEXTURE2D(_CameraDepthTexture);
       SAMPLER(sampler_CameraDepthTexture);
@@ -225,6 +224,10 @@ Shader "Custom/CloudsFull" {
         return a2 + ((t - a1) * (b2 - a2) / (b1 - a1));
       }
 
+      float setRange(float t, float a, float b) {
+        return saturate((t - a)/(b - a));
+      }
+
       float setRangeClamped(float t, float a, float b) {
         // return saturate((t - a)/(b - a));
         float v = clamp(t, a, b);
@@ -279,7 +282,7 @@ Shader "Custom/CloudsFull" {
         VertexOutput o;
 
         o.positionCS = mul(UNITY_MATRIX_MVP, float4(i.positionOS.xyz, 1));
-        float3 viewVector = mul(unity_CameraInvProjection, float4(i.uv * 2 - 1, 0, -1));
+        float3 viewVector = mul(unity_CameraInvProjection, float4(i.uv * 2 - 1, 0, -1)).xyz;
         o.viewVector = mul(unity_CameraToWorld, float4(viewVector, 0));
         o.uv = i.uv;
 
@@ -313,8 +316,29 @@ Shader "Custom/CloudsFull" {
 
       float getAltitudeCoverage(float altitude, float2 gradient) {
         float coverage1 = saturate(altitude * 10);
-        float coverage2 = 1 - saturate((altitude - gradient.x) / (gradient.y - gradient.x));
+        float coverage2 = 1 - saturate((altitude - gradient.x) / max(0.00001, (gradient.y - gradient.x)));
         return coverage1 * coverage2;
+      }
+
+      float2 getSphericalReflectionUVs(float3 p) {
+        float a = atan2(p.z, p.x);
+        float b = atan2(sqrt(p.x*p.x + p.z*p.z), p.y);
+
+        a /= PI;
+        b /= PI;
+        a = a*0.5+0.5;
+
+        return float2(a, b);
+      }
+
+      float getNightTime(float3 sunDir, float s, float o) {
+        float nightTime = dot(sunDir, float3(0, 1, 0));
+        return saturate(nightTime * s + o);
+      }
+
+      float3 getLightMarchDirection(float3 sunDir) {
+        float direction = getNightTime(sunDir, 3, -0.3) > 0 ? -1 : 1;
+        return sunDir * direction;
       }
 
       float getDistanceFactor(float3 pos) {
@@ -330,7 +354,56 @@ Shader "Custom/CloudsFull" {
         return saturate(altitude*2 + 0.1) * density;
       }
 
-      float sampleLowCloud(float3 worldPos, float altitude, float altitudeScalar, float gradientValues, float viewDependentLerp, float cloudCoverage, float fadeTerm, float erosion) {
+      float3 remapCurl(float3 c) {
+        return c*2-1;
+      }
+
+      float3 getCloudPos(float3 pos) {
+        return pos*0.0005*_CloudScale;
+      }
+
+      float3 getCurlOffset(float3 worldPos, float altitude) {
+        float3 curlData = SAMPLE_TEXTURE2D(_CurlTex, sampler_CurlTex, worldPos.xz * _CurlFrequency).rgb;
+        return remapCurl(curlData) * _CurlAmplitude * (1-(altitude*0.5));
+      }
+
+      float4 getHighAltitudeCloudsContribution(float3 pos, float3 sunColor, float3 scattering, float extinction, float2 uv, float sunPhase, float coverage) {
+        float3 p = normalize(pos);
+        float anglepUp = abs(dot(p, float3(0, 1, 0)));
+        float pinchingMask = saturate((1 - anglepUp)*5);
+        float2 sphericalUV = getSphericalReflectionUVs(p);
+
+        float animUV = sphericalUV.x;
+        animUV = animUV % 1;
+        float2 newUV = float2(animUV, sphericalUV.y) * _HighAltitudeCloudScale;
+
+        float3 curlData = SAMPLE_TEXTURE2D(_CurlTex, sampler_CurlTex, sphericalUV*2).rgb;
+        float2 highAltitudeCurlOffset = remapCurl(curlData).rg * 0.01;
+
+        float2 highAltitudeCurlOffsetMask = float2(1, 1);
+
+        float limitA = saturate(animUV - 0.9) * 10;
+        highAltitudeCurlOffsetMask = lerp(highAltitudeCurlOffsetMask, float2(0, 0), limitA);
+
+        float limitB = saturate(animUV * 10);
+        highAltitudeCurlOffsetMask = lerp(float2(0, 0), highAltitudeCurlOffsetMask, limitB);
+
+        highAltitudeCurlOffsetMask = pow(highAltitudeCurlOffsetMask, 3);
+        highAltitudeCurlOffset *= highAltitudeCurlOffsetMask;
+
+        newUV += highAltitudeCurlOffset;
+
+        float lowCoverageFade = saturate(coverage * 4) * 0.95;
+        float cirrusValue = SAMPLE_TEXTURE2D(_HighAltitudeCloudMap, sampler_HighAltitudeCloudMap, newUV).r * lowCoverageFade;
+        float highAltitudeCloudAmount = setRange(cirrusValue, 1 - coverage, 1) * pinchingMask;
+      
+        scattering += highAltitudeCloudAmount * sunColor * extinction * (sunPhase * 500) * saturate(coverage * 0.5) * 0.02;
+        extinction *= saturate(1 - highAltitudeCloudAmount);
+
+        return float4(scattering, extinction);
+      }
+
+      float sampleLowCloud(float3 worldPos, float altitude, float altitudeScalar, float2 gradientValues, float viewDependentLerp, float cloudCoverage, float fadeTerm, float erosion) {
         float altitudeCoverage = getAltitudeCoverage(altitude, gradientValues);
 
         float extraCoverage = (1 - saturate(altitude * altitudeScalar)) * 0.5;
@@ -342,7 +415,7 @@ Shader "Custom/CloudsFull" {
         float lowRange = lerp(1, (c * _A + _B) - extraCoverage, altitudeCoverage);
         lowRange = saturate(lowRange);
 
-        float4 tex = SAMPLE_TEXTURE3D(_CloudNoiseLowFreq, sampler_CloudNoiseLowFreq, worldPos*0.0005*_CloudScale);
+        float4 tex = SAMPLE_TEXTURE3D(_CloudNoiseLowFreq, sampler_CloudNoiseLowFreq, worldPos);
 
         float cloudsValue = setRangeClamped(tex.r, lowRange, 1.0);
         cloudsValue = setRangeClamped(cloudsValue, tex.g * erosion, 1.0);
@@ -352,9 +425,9 @@ Shader "Custom/CloudsFull" {
         return cloudsValue;
       }
 
-      float sampleHighCloud(float3 worldPos, float lowCloud, float altitude, float viewDependentLerp, float erosion) {
+      float sampleHighCloud(float3 worldPos, float lowCloud, float3 curl, float altitude, float viewDependentLerp, float erosion) {
         float density = _CloudGlobalDensity * 0.1;
-        float4 tex = SAMPLE_TEXTURE3D(_CloudNoiseHighFreq, sampler_CloudNoiseHighFreq, worldPos*0.0005*_CloudScale);
+        float4 tex = SAMPLE_TEXTURE3D(_CloudNoiseHighFreq, sampler_CloudNoiseHighFreq, worldPos*_CloudErodeScale + curl);
         tex = lerp(tex, 1 - tex, saturate((altitude - 0.4) * 5));
 
         float altitudeDensity = getAltitudeDensity(altitude, density);
@@ -381,7 +454,7 @@ Shader "Custom/CloudsFull" {
         return isotropicScatteringTop + isotropicScatteringBottom;
       }
 
-      float sampleLightRay(float3 worldPos, float viewDependentLerp, float extinction, ProcessedProperties cloudInfo) {
+      float sampleLightRay(float3 worldPos, float3 lightMarchDir, float viewDependentLerp, float extinction, ProcessedProperties cloudInfo) {
         float3 pos = worldPos;
         float stepSize = _LightSampleStepSize;
 
@@ -393,8 +466,10 @@ Shader "Custom/CloudsFull" {
         for (int i = 1; i <= 6; ++i) {
           float farSampleOffset = (i==6) ? _ExtinctionDistance : 0;
           float selfShadowingExtinction = (i==6) ? _ExtinctionFar : _ExtinctionNear;
-          float3 lightSamplePos = pos + _MainLightPosition.xyz * (stepSize * i + farSampleOffset);
+          float3 lightSamplePos = pos - lightMarchDir * (stepSize * i + farSampleOffset);
           float fadeTerm = getDistanceFactor(lightSamplePos);
+          
+          float3 cloudsPos = getCloudPos(lightSamplePos);
 
           float2 gradientValues = getCloudGradient(weatherData.g);
 
@@ -406,10 +481,10 @@ Shader "Custom/CloudsFull" {
 
           float2 erosion = getErosion(weatherData.r);
 
-          float value = sampleLowCloud(lightSamplePos, altitude, altitudeScalar, gradientValues, viewDependentLerp, weatherData.r, fadeTerm, erosion.x);
+          float value = sampleLowCloud(cloudsPos, altitude, altitudeScalar, gradientValues, viewDependentLerp, weatherData.r, fadeTerm, erosion.x);
         
           if (extinction > 0.3) {
-            value = sampleHighCloud(lightSamplePos, value, altitude, viewDependentLerp, erosion.y);
+            value = sampleHighCloud(cloudsPos, value, 0, altitude, viewDependentLerp, erosion.y);
           }
 
           float extinctionCoeff = extinctionAltitudeScalar * selfShadowingExtinction * value;
@@ -431,12 +506,15 @@ Shader "Custom/CloudsFull" {
         return phase;
       }
 
-      half4 traceClouds(float3 rayDirection, float2 screenPos, float3 startPos, float3 endPos, ProcessedProperties cloudInfo) {
+      half4 traceClouds(float3 rayDirection, float2 screenPos, float3 startPos, float3 endPos, float2 uv, ProcessedProperties cloudInfo) {
         float3 dir = endPos - startPos;
-        float thickness = length(dir);
+        float thickness = min(length(dir), _MaxCloudDistance);
         float rcpThickness = 1.0 / thickness;
-        float sunPhase = getSunScatteringPhase(normalize(dir), -_MainLightPosition, -_Phase);
-        float highAltitudeSunPhase = getSunScatteringPhase(normalize(dir), -_MainLightPosition, -min(_Phase * 2, 0.9));
+
+        float3 lightMarchDir = getLightMarchDirection(_MainLightPosition.xyz);
+        float sunPhase = getSunScatteringPhase(normalize(dir), lightMarchDir, -_Phase);
+        float highAltitudeSunPhase = getSunScatteringPhase(normalize(dir), lightMarchDir, -min(_Phase * 2, 0.9));
+        
         uint sampleCount = lerp(256, 256, saturate((thickness - cloudInfo.cloudLayerHeight) / cloudInfo.cloudLayerHeight));
         float stepSize = thickness / float(sampleCount);
 
@@ -448,14 +526,12 @@ Shader "Custom/CloudsFull" {
         startPos += startOffset * dir;
         endPos += startOffset * dir;
 
-        float lightDotView = -dot(normalize(_MainLightPosition.xyz), normalize(rayDirection));
+        // float lightDotView = -dot(normalize(_MainLightPosition.xyz), normalize(rayDirection));
 
         float3 pos = startPos;
         float4 weather = 0;
-        float4 result = 0;
 
-        float density = 0;
-        int zeroDensitySampleCount = 0;
+        float nightTime = getNightTime(_MainLightPosition.xyz, 3, -0.25);
 
         float weightedNumSteps = 0;
         float weightedNumStepsSum = 0.000001;
@@ -469,8 +545,11 @@ Shader "Custom/CloudsFull" {
         float4 weatherData = float4(_CloudCoverage, _CloudType, _CloudWetness, 1);
 
         [loop]
-        for (uint i = 1; i < sampleCount && extinction > 0.001; ++i) {
+        for (uint i = 0; i < sampleCount && extinction > 0.001; ++i) {
           pos += posStep;
+
+          float3 cloudsPos = getCloudPos(pos);
+          float3 curlPos = getCloudPos(pos);
 
           float fadeTerm = getDistanceFactor(pos);
           float2 gradientValues = getCloudGradient(weatherData.g);
@@ -479,22 +558,24 @@ Shader "Custom/CloudsFull" {
           float altitude = getHeightFactor(pos, cloudInfo);
           float extinctionAltitudeScalar = lerp(1, _ExtinctionReducer, saturate(altitude * altitudeScalar));
 
-          float viewDependentLerp = saturate(length(pos.xy)/_FadeMaxDistance);
+          float viewDependentLerp = saturate(length(pos.xz)/_FadeMaxDistance);
 
           float2 erosion = getErosion(weatherData.r);
 
-          float lowCloud = sampleLowCloud(pos, altitude, altitudeScalar, gradientValues, viewDependentLerp, weatherData.r, fadeTerm, erosion.x);
+          float lowCloud = sampleLowCloud(cloudsPos, altitude, altitudeScalar, gradientValues, viewDependentLerp, weatherData.r, fadeTerm, erosion.x);
         
-          float highCloud = sampleHighCloud(pos, lowCloud, altitude, viewDependentLerp, erosion.y);
+          float3 curl = getCurlOffset(curlPos, altitude);
+
+          float highCloud = sampleHighCloud(cloudsPos, lowCloud, curl, altitude, viewDependentLerp, erosion.y);
           
           if (highCloud <= 0) continue;
 
-          float lightExtinction = sampleLightRay(pos, viewDependentLerp, extinction, cloudInfo);
+          float lightExtinction = sampleLightRay(pos, lightMarchDir, viewDependentLerp, extinction, cloudInfo);
 
           float scatteringCoeff = _Scattering * highCloud * lightExtinction;
           float extinctionCoeff = extinctionAltitudeScalar * _Extinction * highCloud;
 
-          float powderAmount = lerp(_PowderNear, _PowderFar, viewDependentLerp);
+          float powderAmount = lerp(_PowderNear, _PowderFar, viewDependentLerp) * nightTime;
           float powderCoeff = lerp(_PowderCoefNear, _PowderCoefFar, viewDependentLerp) * highCloud;
           float powderTerm = 1 - saturate(exp(-powderCoeff * stepSize * 2) * powderAmount);
 
@@ -502,7 +583,9 @@ Shader "Custom/CloudsFull" {
           extinction *= beersTerm;
 
           float3 ambientColor = getAmbientColor(altitude, extinction);
-          float3 scatteringTerm = scatteringCoeff * stepSize * sunPhase * powderTerm * _MainLightColor + ambientColor * powderTerm;
+          float3 scatteringTerm = scatteringCoeff * stepSize * sunPhase * powderTerm * _MainLightColor.rgb + ambientColor * powderTerm;
+          // float3 scatteringTerm = scatteringCoeff * stepSize * sunPhase * powderTerm * _MainLightColor.rgb;
+
 
           scattering += extinction * scatteringTerm;
 
@@ -520,8 +603,13 @@ Shader "Custom/CloudsFull" {
         weightedExtinctionAltitude /= weightedExtinctionAltitudeSum;
         float3 closestPos = weightedNumStepsSum < 0.001 ? endPos : startPos + dir * stepSize * weightedNumSteps;
 
-        float highAltitudeCloudCoverage = _HighAltitudeCoverage;
+        float highAltitudeCloudCoverage = _HighAltitudeCoverage * nightTime;
         
+        float4 highAltitudeResult = getHighAltitudeCloudsContribution(startPos, _MainLightColor.rgb, scattering, extinction, uv, highAltitudeSunPhase, highAltitudeCloudCoverage);
+
+        // scattering = highAltitudeResult.rgb;
+        // extinction = highAltitudeResult.a;
+
         scattering = max(scattering, 0);
 
         float altitudeScalar = getAltitudeScalar(weatherData.g);
@@ -535,6 +623,7 @@ Shader "Custom/CloudsFull" {
         float alpha = (1 - extinction) * saturate(_ExtinctionColorBlend + scatteringBlendOffset);
 
         return float4(finalColor, saturate(alpha));
+        // return float4(getLightMarchDirection(_MainLightPosition.xyz), saturate(alpha));
       }
 
       half4 traceSpheres(float3 rayDirection, float2 screenPos, float3 startPos, float3 endPos, ProcessedProperties cloudInfo) {
@@ -563,7 +652,7 @@ Shader "Custom/CloudsFull" {
 
           pos += posStep;
         }
-        return (0, 0, 0, 0);
+        return half4(0, 0, 0, 0);
       }
 
       half4 frag(VertexOutput i) : SV_TARGET {
@@ -621,10 +710,10 @@ Shader "Custom/CloudsFull" {
             clouds = half4(0, 0, 0, 0);
           }
           else if (depthPresent && (distance(sceneWorldPos, _WorldSpaceCameraPos) < distance(outerShellHit, _WorldSpaceCameraPos))){
-            clouds = traceClouds(viewDir, screenPos, innerShellHit, sceneWorldPos, cloudInfo);
+            clouds = traceClouds(viewDir, screenPos, innerShellHit, sceneWorldPos, i.uv, cloudInfo);
           }
           else {
-            clouds = traceClouds(viewDir, screenPos, innerShellHit, outerShellHit, cloudInfo);
+            clouds = traceClouds(viewDir, screenPos, innerShellHit, outerShellHit, i.uv, cloudInfo);
           }
         }
         else if (distanceFromPlanetCenter > cloudInfo.planetCenterToCloudEnd) {
@@ -637,7 +726,7 @@ Shader "Custom/CloudsFull" {
           }
           else {
             float3 secondShellHit = outerShellHits == 2 && innerShellHits == 0 ? _WorldSpaceCameraPos + (viewDir * oh.y) : innerShellHit;
-            clouds = traceClouds(viewDir, screenPos, firstShellHit, secondShellHit, cloudInfo);
+            clouds = traceClouds(viewDir, screenPos, firstShellHit, secondShellHit, i.uv, cloudInfo);
           }
         }
         else {
@@ -646,7 +735,7 @@ Shader "Custom/CloudsFull" {
           if (depthPresent && (distance(sceneWorldPos, _WorldSpaceCameraPos) < distance(shellHit, _WorldSpaceCameraPos))) {
             shellHit = sceneWorldPos;
           }
-          clouds = traceClouds(viewDir, screenPos, _WorldSpaceCameraPos, shellHit, cloudInfo);
+          clouds = traceClouds(viewDir, screenPos, _WorldSpaceCameraPos, shellHit, i.uv, cloudInfo);
         }
 
         half3 screen = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv);

@@ -33,7 +33,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CurlTex:
-        m_Texture: {fileID: 2800000, guid: 4df748612329045369fcc9f31afbabe6, type: 3}
+        m_Texture: {fileID: 2800000, guid: 588ca7b04ed41fd48b05a8f706fb022c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DensityErosionTex:
@@ -42,6 +42,10 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _DetailErosionTex:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HighAltitudeCloudMap:
+        m_Texture: {fileID: 2800000, guid: 68082e86787cdf14fa10bd7cc8298eb9, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
@@ -62,13 +66,14 @@ Material:
     - _BottomDarkening: 0.7
     - _BottomDarkeningStart: 0.5
     - _CloudChunkiness: 3.61
-    - _CloudCoverage: 0.35
+    - _CloudCoverage: 0.687
     - _CloudCoverageMinimum: 0
     - _CloudCoverageMultiplier: 0.92
     - _CloudCoverageTest: 0.185
     - _CloudDensityCoverageMultiplier: 0
     - _CloudDetailNoiseScale: 0.7
-    - _CloudGlobalDensity: 0.2
+    - _CloudErodeScale: 6
+    - _CloudGlobalDensity: 0.484
     - _CloudHeightTest: 0
     - _CloudLayerEnd: 5000
     - _CloudLayerStart: 1500
@@ -77,25 +82,28 @@ Material:
     - _CloudType: 0.5
     - _CloudTypeMultiplier: 0.96
     - _CloudWetness: 0
+    - _CurlAmplitude: 0.025
+    - _CurlFrequency: 10
     - _CurlScale: 14.9
     - _CurlStrength: 37.6
     - _DensityEndPos: 0.4
     - _DetailErosionHigh: 0.25
-    - _DetailErosionLow: 0.3
+    - _DetailErosionLow: 0.23
     - _DetailNoiseScale: 17.7
     - _DetailStrength: 1
-    - _Extinction: 1
+    - _Extinction: 0.52
     - _ExtinctionColorBlend: 1
-    - _ExtinctionColorScalar: 0.8
+    - _ExtinctionColorScalar: 2
     - _ExtinctionDistance: 150
     - _ExtinctionFar: 2
     - _ExtinctionNear: 1.5
-    - _ExtinctionReducer: 1
+    - _ExtinctionReducer: 0.638
     - _FadeHorizonAngle: 0.01
     - _FadeMaxDistance: 20000
-    - _FadeMinDistance: 5000
+    - _FadeMinDistance: 15000
     - _GlobalCoverage: 0
     - _GlobalDensity: 0.32
+    - _HighAltitudeCloudScale: 2
     - _HighAltitudeCoverage: 0.7
     - _HighNoiseScrollingSpeed: 0.2
     - _IntervalFarRange: 6000
@@ -103,15 +111,16 @@ Material:
     - _LightSampleStepSize: 60
     - _LightStepSize: 50.43
     - _LowNoiseScrollingSpeed: 0.2
+    - _MaxCloudDistance: 12000
     - _Phase: 0.49
     - _PlanetRadius: 150000
-    - _PowderCoefFar: 2
-    - _PowderCoefNear: 3
-    - _PowderFar: 1.1
-    - _PowderNear: 1.1
+    - _PowderCoefFar: 1.29
+    - _PowderCoefNear: 1.05
+    - _PowderFar: 1.05
+    - _PowderNear: 1.02
     - _PowderSugarStrength: 3.47
-    - _Scattering: 100
-    - _ScatteringColorBlend: 0.5
+    - _Scattering: 9.8
+    - _ScatteringColorBlend: 0
     - _SilverLiningPower: 1.47
     - _WeatherMapScale: 20000
     - _WeatherMapScrollingSpeed: 0.2
