@@ -572,6 +572,8 @@ Shader "Custom/CloudsFull" {
 
           float lightExtinction = sampleLightRay(pos, lightMarchDir, viewDependentLerp, extinction, cloudInfo);
 
+          highCloud *= 1-fadeTerm;
+
           float scatteringCoeff = _Scattering * highCloud * lightExtinction;
           float extinctionCoeff = extinctionAltitudeScalar * _Extinction * highCloud;
 
@@ -617,12 +619,13 @@ Shader "Custom/CloudsFull" {
         float darkBottoms = weightedExtinctionAltitude * altitudeScalar - _BottomDarkeningStart;
         float b = lerp(_ExtinctionColorScalar * _BottomDarkening, _ExtinctionColorScalar, saturate(darkBottoms));
 
-        float3 finalColor = scattering + _ExtinctionColor * b;
+        float3 finalColor = scattering + _ExtinctionColor;
 
         float scatteringBlendOffset = luminance(scattering) * _ScatteringColorBlend;
         float alpha = (1 - extinction) * saturate(_ExtinctionColorBlend + scatteringBlendOffset);
 
-        return float4(finalColor, saturate(alpha));
+        return float4(finalColor*(1-getDistanceFactor(startPos)), saturate(alpha)*(1-getDistanceFactor(startPos)));
+        // return float4(finalColor, saturate(alpha));
         // return float4(getLightMarchDirection(_MainLightPosition.xyz), saturate(alpha));
       }
 
