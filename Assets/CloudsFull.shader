@@ -15,6 +15,13 @@ Shader "Custom/CloudsFull" {
     _CloudType ("Cloud Type", Range(0, 1)) = 0.5
     _CloudWetness ("Cloud Wetness", Range(0, 1)) = 0
 
+    _TimeScalar ("Time Scalar", Float) = 500
+
+    _WindAngle ("Cloud Wind Angle", Range(0, 1)) = 0
+
+    _CloudWindSpeed ("Cloud Wind Speed", Range(0, 4)) = 0
+    _CurlWindSpeed ("Curl Wind Speed", Range(0, 4)) = 0
+
     _WeatherMap ("Weather Map", 2D) = "white" {}
 
     _FadeMinDistance ("Cloud Min Fade Distance", Float) = 10000
@@ -99,6 +106,12 @@ Shader "Custom/CloudsFull" {
       float _CloudCoverage;
       float _CloudType;
       float _CloudWetness;
+
+      float _TimeScalar;
+
+      float _WindAngle;
+      float _CloudWindSpeed;
+      float _CurlWindSpeed;
 
       float3 _AmbientBottomColor;
       float3 _AmbientTopColor;
@@ -454,7 +467,7 @@ Shader "Custom/CloudsFull" {
         return isotropicScatteringTop + isotropicScatteringBottom;
       }
 
-      float sampleLightRay(float3 worldPos, float3 lightMarchDir, float viewDependentLerp, float extinction, ProcessedProperties cloudInfo) {
+      float sampleLightRay(float3 worldPos, float3 lightMarchDir, float viewDependentLerp, float extinction, float3 windOffset, ProcessedProperties cloudInfo) {
         float3 pos = worldPos;
         float stepSize = _LightSampleStepSize;
 
@@ -469,7 +482,7 @@ Shader "Custom/CloudsFull" {
           float3 lightSamplePos = pos - lightMarchDir * (stepSize * i + farSampleOffset);
           float fadeTerm = getDistanceFactor(lightSamplePos);
           
-          float3 cloudsPos = getCloudPos(lightSamplePos);
+          float3 cloudsPos = getCloudPos(lightSamplePos + windOffset);
 
           float2 gradientValues = getCloudGradient(weatherData.g);
 
@@ -515,6 +528,15 @@ Shader "Custom/CloudsFull" {
         float sunPhase = getSunScatteringPhase(normalize(dir), lightMarchDir, -_Phase);
         float highAltitudeSunPhase = getSunScatteringPhase(normalize(dir), lightMarchDir, -min(_Phase * 2, 0.9));
         
+        float cloudTime = _Time.y * _CloudWindSpeed * _TimeScalar;
+        float3 windDir = float3(cos(_WindAngle*PI*2), 0, sin(_WindAngle*PI*2));
+        float3 windVector = windDir * _CloudWindSpeed;
+        float3 curlVector = windDir * _CurlWindSpeed;
+        float3 windOffset = windVector * cloudTime + windDir * cloudTime * _TimeScalar * 10; 
+        float3 curlOffset = curlVector * cloudTime * 100;
+        windOffset.y = _Time.y * 3.5;
+        curlOffset.y = windOffset.y;
+
         uint sampleCount = lerp(256, 256, saturate((thickness - cloudInfo.cloudLayerHeight) / cloudInfo.cloudLayerHeight));
         float stepSize = thickness / float(sampleCount);
 
@@ -548,8 +570,8 @@ Shader "Custom/CloudsFull" {
         for (uint i = 0; i < sampleCount && extinction > 0.001; ++i) {
           pos += posStep;
 
-          float3 cloudsPos = getCloudPos(pos);
-          float3 curlPos = getCloudPos(pos);
+          float3 cloudsPos = getCloudPos(pos + windOffset);
+          float3 curlPos = getCloudPos(pos + windOffset + curlOffset);
 
           float fadeTerm = getDistanceFactor(pos);
           float2 gradientValues = getCloudGradient(weatherData.g);
@@ -570,7 +592,7 @@ Shader "Custom/CloudsFull" {
           
           if (highCloud <= 0) continue;
 
-          float lightExtinction = sampleLightRay(pos, lightMarchDir, viewDependentLerp, extinction, cloudInfo);
+          float lightExtinction = sampleLightRay(pos, lightMarchDir, viewDependentLerp, extinction, windOffset, cloudInfo);
 
           highCloud *= 1-fadeTerm;
 

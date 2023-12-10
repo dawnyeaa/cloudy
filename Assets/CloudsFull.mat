@@ -66,7 +66,7 @@ Material:
     - _BottomDarkening: 0.7
     - _BottomDarkeningStart: 0.5
     - _CloudChunkiness: 3.61
-    - _CloudCoverage: 0.604
+    - _CloudCoverage: 0.585
     - _CloudCoverageMinimum: 0
     - _CloudCoverageMultiplier: 0.92
     - _CloudCoverageTest: 0.185
@@ -82,12 +82,14 @@ Material:
     - _CloudType: 0.5
     - _CloudTypeMultiplier: 0.96
     - _CloudWetness: 0
+    - _CloudWindSpeed: 0.4
     - _CurlAmplitude: 0.025
     - _CurlFrequency: 10
     - _CurlScale: 14.9
     - _CurlStrength: 37.6
+    - _CurlWindSpeed: 0.4
     - _DensityEndPos: 0.4
-    - _DetailErosionHigh: 0.25
+    - _DetailErosionHigh: 0.204
     - _DetailErosionLow: 0.2
     - _DetailNoiseScale: 17.7
     - _DetailStrength: 1
@@ -97,7 +99,7 @@ Material:
     - _ExtinctionDistance: 150
     - _ExtinctionFar: 2
     - _ExtinctionNear: 1.5
-    - _ExtinctionReducer: 0.638
+    - _ExtinctionReducer: 0.737
     - _FadeHorizonAngle: 0.01
     - _FadeMaxDistance: 20000
     - _FadeMinDistance: 15000
@@ -119,15 +121,17 @@ Material:
     - _PowderFar: 1.05
     - _PowderNear: 1.02
     - _PowderSugarStrength: 3.47
-    - _Scattering: 9.8
+    - _Scattering: 7.2
     - _ScatteringColorBlend: 0
     - _SilverLiningPower: 1.47
+    - _TimeScalar: 5
     - _WeatherMapScale: 20000
     - _WeatherMapScrollingSpeed: 0.2
+    - _WindAngle: 0.118
     m_Colors:
     - _A: {r: 0, g: 1, b: 0, a: 0}
-    - _AmbientBottomColor: {r: 0.16981131, g: 0.11454254, b: 0.12375402, a: 1}
-    - _AmbientTopColor: {r: 0.5754717, g: 0.49765635, b: 0.45874867, a: 1}
+    - _AmbientBottomColor: {r: 0.1509434, g: 0.083161265, b: 0.083161265, a: 1}
+    - _AmbientTopColor: {r: 0.7169812, g: 0.57601446, b: 0.26650053, a: 1}
     - _ExtinctionColor: {r: 0.32156864, g: 0.24313726, b: 0.24814382, a: 1}
     - _FogColor: {r: 0.6392157, g: 0.79215693, b: 0.83921576, a: 1}
     - _WeatherMapOffset: {r: 0, g: 0, b: 0, a: 0}
